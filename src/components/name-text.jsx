@@ -20,9 +20,17 @@ function NameText({
   external,
   onClick,
 }) {
-  const { acct, avatar, avatarStatic, id, url, displayName, emojis, bot } =
-    account;
-  let { username } = account;
+  const {
+    acct,
+    avatar,
+    avatarStatic,
+    id,
+    url,
+    displayName,
+    emojis,
+    bot,
+    username,
+  } = account;
   const [_, acct1, acct2] = acct.match(/([^@]+)(@.+)/i) || [, acct];
 
   const trimmedUsername = username.toLowerCase().trim();
@@ -31,19 +39,17 @@ function NameText({
     .replace(/(\:(\w|\+|\-)+\:)(?=|[\!\.\?]|$)/g, '') // Remove shortcodes, regex from https://regex101.com/r/iE9uV0/1
     .replace(/\s+/g, ''); // E.g. "My name" === "myname"
   const shortenedAlphaNumericDisplayName = shortenedDisplayName.replace(
-    /[^a-z0-9]/gi,
+    /[^a-z0-9@\.]/gi,
     '',
   ); // Remove non-alphanumeric characters
 
-  if (
-    !short &&
-    (trimmedUsername === trimmedDisplayName ||
-      trimmedUsername === shortenedDisplayName ||
-      trimmedUsername === shortenedAlphaNumericDisplayName ||
-      nameCollator.compare(trimmedUsername, shortenedDisplayName) === 0)
-  ) {
-    username = null;
-  }
+  const hideUsername =
+    (!short &&
+      (trimmedUsername === trimmedDisplayName ||
+        trimmedUsername === shortenedDisplayName ||
+        trimmedUsername === shortenedAlphaNumericDisplayName ||
+        nameCollator.compare(trimmedUsername, shortenedDisplayName) === 0)) ||
+    shortenedAlphaNumericDisplayName === acct.toLowerCase();
 
   return (
     <a
@@ -57,9 +63,15 @@ function NameText({
       }
       onClick={(e) => {
         if (external) return;
+        if (e.shiftKey) return; // Save link? 🤷‍♂️
         e.preventDefault();
         e.stopPropagation();
         if (onClick) return onClick(e);
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.which === 2) {
+          const internalURL = `#/${instance}/a/${id}`;
+          window.open(internalURL, '_blank');
+          return;
+        }
         states.showAccount = {
           account,
           instance,
@@ -76,7 +88,7 @@ function NameText({
           <b>
             <EmojiText text={displayName} emojis={emojis} />
           </b>
-          {!showAcct && username && (
+          {!showAcct && !hideUsername && (
             <>
               {' '}
               <i>@{username}</i>
